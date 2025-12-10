@@ -1,6 +1,8 @@
 # Docker Smart Proxy: Tor + VPN Routing
 
-[![Docker Compose](https://img.shields.io/badge/Docker-Compose![Tor](https://img.shields.io/badge/Tor-SOCKS-green![Gluetun VPN](https://img.shields.io/badge/VPN-Gluetun-orangeSelective traffic routing via Docker Compose:
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
+[![Tor](https://img.shields.io/badge/Tor-SOCKS-green.svg)](https://www.torproject.org/)
+[![Gluetun VPN](https://img.shields.io/badge/VPN-Gluetun-orange.svg)](https://github.com/qdm12/gluetun)Compose:
 - **.onion sites** → Tor SOCKS (over VPN tunnel)
 - **YouTube domains** → VPN HTTP proxy 
 - **Everything else** → direct Internet
@@ -8,42 +10,48 @@
 No client-side proxy switching needed. Browser points at single HTTP proxy endpoint.
 
 ## Features
-- JS-based domain routing (dumbproxy)
+- JS-based domain routing
 - Tor anonymity + VPN egress in one chain
-- Gluetun VPN with Surfshark/OpenVPN support
+- VPN with Wireguard/OpenVPN support
 - Customizable domain matching
-- Works with any HTTP(S)-aware browser/app
+- Works with any HTTP(S)-aware browser/app/device
 
 ## Architecture
 ```
 Client (Browser) → dumbproxy:8080 → {
-  .onion    → vpn-proxy:9150 (Tor SOCKS) → VPN tunnel → Internet
-  youtube.* → vpn-proxy:8888 (HTTP proxy) → VPN → Internet  
+  .onion    → vpn-proxy:9150 (Tor SOCKS) → VPN → Internet
+  specificdomains → vpn-proxy:8888 (HTTP proxy) → VPN → Internet  
   *        → direct from host
 }
 ```
-
+## Technologies used
+ - Dumbproxy - https://github.com/SenseUnit/dumbproxy
+ - Gluetun VPN Proxy - https://github.com/qdm12/gluetun
+ - Tor Proxy - https://github.com/PeterDaveHello/tor-socks-proxy
+   
 ## Prerequisites
 - Docker & Docker Compose
-- Existing Docker bridge network `gibbridge` (or adapt `networks:`)
-- Surfshark/OpenVPN credentials
+- Supported Wireguard/OpenVPN provider and credentials ([As per this list](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers)
+- Custom Wireguard/OpenVPN if it isn't listed above [as per this list](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/custom.md))
 
 ## Quick Start
 
 1. **Clone & prepare**
 ```
-git clone https://github.com/YOURUSERNAME/docker-smart-proxy-tor-vpn
-cd docker-smart-proxy-tor-vpn
-cp .env.example .env
+git clone https://github.com/thefunkygibbon/GibProxies
+cd GibProxies
 ```
 
 2. **Edit `.env`**
+   As per the supported VPN providers link above
 ```
-VPN_SERVICE_PROVIDER=surfshark
-VPN_TYPE=openvpn
-OPENVPN_USER=your_surfshark_user
-OPENVPN_PASSWORD=your_surfshark_pass
-SERVER_COUNTRIES=Albania
+VPN_SERVICE_PROVIDER=name as per https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers
+VPN_TYPE=openvpn/wireguard
+OPENVPN_USER=your_OVPN_user
+OPENVPN_PASSWORD=your_OVPN_pass
+SERVER_COUNTRIES=Albania (or any other preferred country)
+WIREGUARD_PRIVATE_KEY=wOE23fsdfbDwnN8/Bptgergre8T71v32f33fmFWujulwUU=  (or whatever is provided by your VPN provider)
+WIREGUARD_ADDRESSES=10.60.221.3/32 (or whatever is provided by your VPN provider)
 ```
 
 3. **Deploy**
