@@ -65,7 +65,7 @@ OPENVPN_PASSWORD=your_OVPN_pass
 ```
 and if you use Wireguard,  just fill these two in.
 ```
-WIREGUARD_PRIVATE_KEY=wOEjuygfsdfbDwnN8/Bpt7133fmFWujulwUU=  (or whatever is provided by your VPN provider)
+WIREGUARD_PRIVATE_KEY=wOEjufsdfbDwnN8/Bpt7133WujulwUU=  (provided by your VPN provider)
 WIREGUARD_ADDRESSES=10.60.221.3/32 (or whatever is provided by your VPN provider)
 ```
 Note that it doesn't care if you fill all of those in, it will only use the vpn type as defined in VPN_TYPE.
