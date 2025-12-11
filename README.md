@@ -104,69 +104,7 @@ if (isYouTubeHost(host)) return 'http://vpn-proxy:8888';
 return '';
 ```
 
-**YouTube domains covered:**
-- `*.youtube.com`
-- `youtube-nocookie.com`
-- `youtu.be`
-- `ytimg.com` (thumbnails/CDN)
-- `googlevideo.com` (video streaming)
 
-## docker-compose.yml
-
-```
-services:
-  vpn-proxy:
-    image: qmcgaw/gluetun
-    container_name: vpn-proxy
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    volumes:
-      - /gibproxy:/gluetun
-    env_file:
-      - ./env.vpn
-    networks:
-      - ProxyNet
-    environment:
-      - HTTPPROXY=on
-      - HTTPPROXY_LOG=off
-      - HTTPPROXY_LISTENING_ADDRESS=:8888
-      - PUID=1000
-      - PGID=1000
-    # expose nothing publicly; other containers use its network
-    restart: unless-stopped
-
-  tor:
-    image: peterdavehello/tor-socks-proxy
-    container_name: tor
-    network_mode: "service:vpn-proxy"
-    restart: unless-stopped
-    depends_on:
-      - vpn-proxy
-      
-  dumbproxy:
-    image: ghcr.io/senseunit/dumbproxy:latest-alpine
-    container_name: dumbproxy
-    command:
-      - -bind-address=:8080
-      - -js-proxy-router=/config/router.js
-    ports:
-      - "8080:8080"           # proxy you point apps to
-    volumes:
-      - ./router.js:/config/router.js:ro
-    networks:
-      - ProxyNet
-    depends_on:
-      - tor
-    restart: unless-stopped
-
-networks:
-  ProxyNet:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.enable_ip_masquerade: "true"
-```
 
 ## Verification
 
