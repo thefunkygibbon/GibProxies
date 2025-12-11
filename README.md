@@ -42,16 +42,39 @@ git clone https://github.com/thefunkygibbon/GibProxies
 cd GibProxies
 ```
 
-2. **Edit `.env`**
-   As per the supported VPN providers link above
+2. **Configure settings**
+
+There are two options,  you can use the setupscript.sh
+```
+chmod 777 setupscript.sh
+./setupscript.sh
+```
+This will walk you through the configuration where you simply need to enter your VPN provider name [as per this link](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers), then choose openvpn or wireguard (personally I found openvpn to be better with my vpn provider), enter credentials,  choose what you want to route via the vpn (have included youtube and netflix as options,  you can add other domains by editing the resulting router.js file, see below).
+
+2.5 **Configure settings (manually)**
+If you wanted to do things a bit more manually then you just need to edit the docker-compose.yml and make sure that the below 
 ```
 VPN_SERVICE_PROVIDER=name as per https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers
 VPN_TYPE=openvpn/wireguard
+```
+If you use openvpn make sure these are filled in correctly
+```
 OPENVPN_USER=your_OVPN_user
 OPENVPN_PASSWORD=your_OVPN_pass
-SERVER_COUNTRIES=Albania (or any other preferred country)
+```
+and if you use Wireguard,  just fill these two in.
+```
 WIREGUARD_PRIVATE_KEY=wOE23fsdfbDwnN8/Bptgergre8T71v32f33fmFWujulwUU=  (or whatever is provided by your VPN provider)
 WIREGUARD_ADDRESSES=10.60.221.3/32 (or whatever is provided by your VPN provider)
+```
+Note that it doesn't care if you fill all of those in, it will only use the vpn type as defined in VPN_TYPE.
+
+Next you need to edit router.js so that it includes all of the domains you want to route via the VPN
+Find the section which lists the following, and simply change the domain names, you can add extras if you wish. Just remember to add the || at the end of each line (except the last one)
+```
+    h.endsWith("domain.com") ||
+    h.endsWith("domain2.com") ||
+    h.endsWith("domain3.com")
 ```
 
 3. **Deploy**
