@@ -42,7 +42,7 @@ git clone https://github.com/thefunkygibbon/GibProxies
 cd GibProxies
 ```
 
-2. **Configure settings**
+2. **Configure settings (guided)**
 
 There are two options,  you can use the setupscript.sh
 ```
@@ -51,7 +51,7 @@ chmod 777 setupscript.sh
 ```
 This will walk you through the configuration where you simply need to enter your VPN provider name [as per this link](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers), then choose openvpn or wireguard (personally I found openvpn to be better with my vpn provider), enter credentials,  choose what you want to route via the vpn (have included youtube and netflix as options,  you can add other domains by editing the resulting router.js file, see below).
 
-2.5 **Configure settings (manually)**
+2.5  **Configure settings (manually)**
 If you wanted to do things a bit more manually then you just need to edit the docker-compose.yml and make sure that the below 
 ```
 VPN_SERVICE_PROVIDER=name as per https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers
