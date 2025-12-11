@@ -114,18 +114,27 @@ return '';
 ## docker-compose.yml
 
 ```
-version: "3.8"
-
 services:
   vpn-proxy:
     image: qmcgaw/gluetun
     container_name: vpn-proxy
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - /gibproxy:/gluetun
+    env_file:
+      - ./env.vpn
     networks:
-      - gibbridge
-    env_file: .env
+      - ProxyNet
     environment:
       - HTTPPROXY=on
+      - HTTPPROXY_LOG=off
       - HTTPPROXY_LISTENING_ADDRESS=:8888
+      - PUID=1000
+      - PGID=1000
+    # expose nothing publicly; other containers use its network
     restart: unless-stopped
 
   tor:
@@ -135,7 +144,7 @@ services:
     restart: unless-stopped
     depends_on:
       - vpn-proxy
-
+      
   dumbproxy:
     image: ghcr.io/senseunit/dumbproxy:latest-alpine
     container_name: dumbproxy
@@ -143,19 +152,20 @@ services:
       - -bind-address=:8080
       - -js-proxy-router=/config/router.js
     ports:
-      - "8080:8080"
+      - "8080:8080"           # proxy you point apps to
     volumes:
       - ./router.js:/config/router.js:ro
     networks:
-      - gibbridge
+      - ProxyNet
     depends_on:
-      - vpn-proxy
       - tor
     restart: unless-stopped
 
 networks:
-  gibbridge:
-    external: true
+  ProxyNet:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "true"
 ```
 
 ## Verification
