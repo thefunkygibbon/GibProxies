@@ -1,24 +1,36 @@
 #!/bin/bash
-# dumbproxy-installer.sh - WITH "ALL TRAFFIC" OPTION
-# v1.1 @thefunkygibbon
+# GibProxy installer script
+# Version: 1.1
+
 set -euo pipefail
+
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GIB_DIR="${BASE_DIR}/gibproxy"
 
 clear
 
 cat << "EOF"
-    ╔══════════════════════════════════════════════════════╗
-    ║     GibProxy VPN & Tor Router Installer              ║
-    ║                                                      ║
-    ║        .-\"\"\"-.                                    ║
-    ║       /  _  _  \                                     ║
-    ║       | (.)(.) |                                     ║
-    ║       \   ^^   /                                     ║
-    ║        '.___.'                                       ║
-    ║         /   \                                        ║
-    ║        /_____\\                                      ║
-    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor ║
-    ╚══════════════════════════════════════════════════════╝
+    ╔════════════════════════════════════════════════════════════╗
+    ║      GibProxy VPN & Tor Router Installer                   ║
+    ║                                                            ║
+    ║        .-\"\"\"-.                                          ║
+    ║       /  _  _  \                                           ║
+    ║       | (.)(.) |                                           ║
+    ║       \   ^^   /                                           ║
+    ║        '.___.'                                             ║
+    ║         /   \                                              ║
+    ║        /_____\\                                            ║
+    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor       ║
+    ╚════════════════════════════════════════════════════════════╝
 EOF
+
+if [[ ! -d "$GIB_DIR" ]]; then
+  echo "ERROR: gibproxy folder not found at: $GIB_DIR"
+  echo "Create it and place docker-compose.yml and router.js inside it first."
+  exit 1
+fi
+
+cd "$GIB_DIR"
 
 # 1. VPN CONFIG
 echo "VPN Provider (surfshark/mullvad/nordvpn/protonvpn/custom): "
@@ -55,11 +67,11 @@ case $SVC_CHOICE in
   *) echo "Invalid choice"; exit 1;;
 esac
 
-# 3. BACKUP
+# 3. BACKUP (inside gibproxy)
 cp -n docker-compose.yml docker-compose.yml.bak 2>/dev/null || true
 cp -n router.js router.js.bak 2>/dev/null || true
 
-# 4. UPDATE docker-compose.yml
+# 4. UPDATE docker-compose.yml (in gibproxy/)
 update_env() {
   local key="$1" value="$2"
   if grep -q "$key=" docker-compose.yml; then
@@ -81,7 +93,15 @@ else
   update_env "WIREGUARD_ENDPOINT_IP" "$WG_ENDPOINT"
 fi
 
-# 5. REBUILD router.js (CURRENT DIRECTORY MOUNT)
+# Ensure the compose file mounts router.js from THIS folder:
+# (idempotent: replace if present, otherwise append under volumes)
+if grep -q "/config/router.js" docker-compose.yml; then
+  sed -i 's#.*router.js:/config/router.js:ro#      - ./router.js:/config/router.js:ro#' docker-compose.yml
+else
+  sed -i '/volumes:/a\      - ./router.js:/config/router.js:ro' docker-compose.yml
+fi
+
+# 5. REBUILD router.js (in gibproxy/)
 > router.js.tmp
 
 cat >> router.js.tmp << 'EOF'
@@ -139,14 +159,12 @@ function getProxy(req, dst, username) {
 EOF
 
 if [[ $SERVICES == "all" ]]; then
-  # All traffic except .onion via VPN
   cat >> router.js.tmp << 'EOF'
   if (host.endsWith('.onion')) return TOR_PROXY;
   return VPN_PROXY;
 }
 EOF
 else
-  # Selective routing
   [[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
   [[ $SERVICES == *"youtube"* ]] && echo "  if (isYouTubeHost(host)) return VPN_PROXY;" >> router.js.tmp
 
@@ -170,30 +188,35 @@ fi
 
 cat << EOF
 
-✅ CONFIGURATION COMPLETE!
+✅ CONFIGURATION COMPLETE! (v1.1)
 
-📋 Services via VPN: $SHOW_SERVICES
-🌍 VPN Provider: $VPN_PROVIDER ($VPN_COUNTRY)
-🔌 VPN Tech: $VPN_TECH
+📂 Config folder:
+  ${GIB_DIR}
 
-📁 IMPORTANT: Volume Mount
-docker-compose.yml should mount:
+📋 Services via VPN: ${SHOW_SERVICES}
+🌍 VPN Provider: ${VPN_PROVIDER} (${VPN_COUNTRY})
+🔌 VPN Tech: ${VPN_TECH}
+
+📁 Volume Mapping
+docker-compose.yml (inside gibproxy) should have:
   - "./router.js:/config/router.js:ro"
 
-This uses the CURRENT DIRECTORY (where you ran the script).
-router.js will be available to dumbproxy from this folder.
-You can move these files later, just update the volume path.
+This means Docker will mount:
+  ${GIB_DIR}/router.js  →  /config/router.js in the dumbproxy container.
 
-🔄 To START services, run:
+If you move the gibproxy folder elsewhere, run Docker from that new folder
+or adjust the volume path accordingly.
+
+🔄 To START services, run from inside gibproxy:
+  cd "${GIB_DIR}"
   docker compose down    # (if already running)
   docker compose up -d
 
-📋 Backups created (if originals existed):
+📋 Backups created (in gibproxy):
   - docker-compose.yml.bak
   - router.js.bak
 
 🧪 Test commands:
-  # Check via VPN:
   curl -x http://localhost:8080 https://www.netflix.com -I
   curl -x http://localhost:8080 https://www.youtube.com -I
 
