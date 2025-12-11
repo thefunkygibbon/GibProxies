@@ -55,8 +55,8 @@ This will walk you through the configuration where you simply need to enter your
 
 If you wanted to do things a bit more manually then you just need to edit the docker-compose.yml and make sure that the below 
 ```
-VPN_SERVICE_PROVIDER=name as per https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers
-VPN_TYPE=openvpn/wireguard
+VPN_SERVICE_PROVIDER=name (as per link above)
+VPN_TYPE=openvpn or wireguard
 ```
 If you use openvpn make sure these are filled in correctly
 ```
