@@ -1,14 +1,22 @@
 #!/bin/bash
-# dumbproxy-installer.sh - FIXED COUNTRY VAR
-# v1.1  @thefunkygibbon
-
+# dumbproxy-installer.sh - WITH "ALL TRAFFIC" OPTION
+# v1.1 @thefunkygibbon
 set -euo pipefail
 
 clear
 
 cat << "EOF"
     ╔══════════════════════════════════════════════════════╗
-    ║         Gib Proxy VPN & Tor Router Installer         ║
+    ║  🐒  DumbProxy VPN Router Installer                  ║
+    ║                                                      ║
+    ║        .-\"\"\"-.                                      ║
+    ║       /  _  _  \                                     ║
+    ║       | (.)(.) |                                    ║
+    ║       \   ^^   /                                     ║
+    ║        '.___.'                                      ║
+    ║         /   \                                       ║
+    ║        /_____\\                                      ║
+    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor║
     ╚══════════════════════════════════════════════════════╝
 EOF
 
@@ -36,12 +44,20 @@ echo "Services to route via VPN:"
 echo " 1) Netflix only"
 echo " 2) YouTube only" 
 echo " 3) Both Netflix + YouTube"
-read -p "Choice (1-3): " SVC_CHOICE
-case $SVC_CHOICE in 1) SERVICES="netflix";; 2) SERVICES="youtube";; 3) SERVICES="netflix,youtube";; *) exit 1;; esac
+echo " 4) ALL traffic (except .onion) via VPN"
+read -p "Choice (1-4): " SVC_CHOICE
+
+case $SVC_CHOICE in
+  1) SERVICES="netflix";;
+  2) SERVICES="youtube";;
+  3) SERVICES="netflix,youtube";;
+  4) SERVICES="all";;
+  *) echo "Invalid choice"; exit 1;;
+esac
 
 # 3. BACKUP
-cp -n docker-compose.yml docker-compose.yml.bak
-cp -n router.js router.js.bak
+cp -n docker-compose.yml docker-compose.yml.bak 2>/dev/null || true
+cp -n router.js router.js.bak 2>/dev/null || true
 
 # 4. UPDATE docker-compose.yml
 update_env() {
@@ -77,9 +93,10 @@ function normalizeHost(host) {
 }
 EOF
 
-# Service matchers
-if [[ $SERVICES == *"netflix"* ]]; then
-  cat >> router.js.tmp << 'EOF'
+# Service matchers only needed if not "all"
+if [[ $SERVICES != "all" ]]; then
+  if [[ $SERVICES == *"netflix"* ]]; then
+    cat >> router.js.tmp << 'EOF'
 function isNetflixHost(host) {
   const h = normalizeHost(host);
   const NETFLIX_DOMAINS = `netflix.com
@@ -94,10 +111,10 @@ netflixpartners.com`.split('\n').filter(Boolean);
   return NETFLIX_DOMAINS.some(d => h.endsWith(d.trim()));
 }
 EOF
-fi
+  fi
 
-if [[ $SERVICES == *"youtube"* ]]; then
-  cat >> router.js.tmp << 'EOF'
+  if [[ $SERVICES == *"youtube"* ]]; then
+    cat >> router.js.tmp << 'EOF'
 function isYouTubeHost(host) {
   const h = normalizeHost(host);
   const YOUTUBE_DOMAINS = `youtube.com
@@ -113,6 +130,7 @@ youtu.be`.split('\n').filter(Boolean);
   return YOUTUBE_DOMAINS.some(d => h.endsWith(d.trim()));
 }
 EOF
+  fi
 fi
 
 cat >> router.js.tmp << 'EOF'
@@ -120,43 +138,62 @@ function getProxy(req, dst, username) {
   const host = normalizeHost(dst.originalHost || req.host || "");
 EOF
 
-[[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
-[[ $SERVICES == *"youtube"* ]] && echo "  if (isYouTubeHost(host)) return VPN_PROXY;" >> router.js.tmp
+if [[ $SERVICES == "all" ]]; then
+  # All traffic except .onion via VPN
+  cat >> router.js.tmp << 'EOF'
+  if (host.endsWith('.onion')) return TOR_PROXY;
+  return VPN_PROXY;
+}
+EOF
+else
+  # Selective routing
+  [[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
+  [[ $SERVICES == *"youtube"* ]] && echo "  if (isYouTubeHost(host)) return VPN_PROXY;" >> router.js.tmp
 
-cat >> router.js.tmp << 'EOF'
+  cat >> router.js.tmp << 'EOF'
   if (host.endsWith('.onion')) return TOR_PROXY;
   return '';
 }
 EOF
+fi
 
 mv router.js.tmp router.js
 
 # 6. FINAL INSTRUCTIONS
 clear
+
+if [[ $SERVICES == "all" ]]; then
+  SHOW_SERVICES="ALL traffic (except .onion)"
+else
+  SHOW_SERVICES="$SERVICES"
+fi
+
 cat << EOF
 
 ✅ CONFIGURATION COMPLETE!
 
-📋 Services via VPN: $SERVICES
+📋 Services via VPN: $SHOW_SERVICES
 🌍 VPN Provider: $VPN_PROVIDER ($VPN_COUNTRY)
 🔌 VPN Tech: $VPN_TECH
 
 📁 IMPORTANT: Volume Mount
-The script configured docker-compose.yml to mount:
+docker-compose.yml should mount:
   - "./router.js:/config/router.js:ro"
 
 This uses the CURRENT DIRECTORY (where you ran the script).
 router.js will be available to dumbproxy from this folder.
+You can move these files later, just update the volume path.
 
 🔄 To START services, run:
   docker compose down    # (if already running)
   docker compose up -d
 
-📋 Backups created:
+📋 Backups created (if originals existed):
   - docker-compose.yml.bak
   - router.js.bak
 
 🧪 Test commands:
+  # Check via VPN:
   curl -x http://localhost:8080 https://www.netflix.com -I
   curl -x http://localhost:8080 https://www.youtube.com -I
 
