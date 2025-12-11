@@ -7,7 +7,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - /home/dockeruser/.config/proxy:/gluetun
+      - ./gibproxy:/gluetun
     env_file:
       - ./env.vpn
     networks:
@@ -38,7 +38,7 @@ services:
     ports:
       - "8080:8080"           # proxy you point apps to
     volumes:
-      - /home/dockeruser/.config/dumbproxy/router.js:/config/router.js:ro
+      - ./gibproxy/router.js:/config/router.js:ro
     networks:
       - ProxyNet
     depends_on:
