@@ -46,25 +46,23 @@ OPENVPN_ENDPOINT_IP=""
 WIREGUARD_ENDPOINT_IP=""
 
 if [[ $VPN_TECH == "openvpn" ]]; then
-  read -s -p "OpenVPN Username: " VPN_USER; echo
-  read -s -p "OpenVPN Password: " VPN_PASS; echo
+  read -p "OpenVPN Username: " VPN_USER; echo
+  read -p "OpenVPN Password: " VPN_PASS; echo
 elif [[ $VPN_TECH == "wireguard" ]]; then
-  read -s -p "WireGuard Private Key: " WG_KEY; echo
+  read -p "WireGuard Private Key: " WG_KEY; echo
   echo "WireGuard Addresses example: 10.64.0.2/32"
-  read -p "WireGuard Addresses (WIREGUARD_ADDRESSES): " WG_ADDR
+  read -p "WireGuard Addresses: " WG_ADDR
 fi
 
 # Optional endpoint IP
 echo ""
-echo "Do you want to specify a VPN endpoint IP address?"
-echo "This sets OPENVPN_ENDPOINT_IP or WIREGUARD_ENDPOINT_IP as appropriate."
-read -p "Specify endpoint IP? (y/N): " EP_CHOICE
+read -p "Do you want to specify a VPN endpoint/server IP address? (y/N): " EP_CHOICE
 
 if [[ "$EP_CHOICE" =~ ^[Yy]$ ]]; then
   if [[ $VPN_TECH == "openvpn" ]]; then
-    read -p "OPENVPN_ENDPOINT_IP: " OPENVPN_ENDPOINT_IP
+    read -p "OpenVPN Endpoint IP: " OPENVPN_ENDPOINT_IP
   else
-    read -p "WIREGUARD_ENDPOINT_IP: " WIREGUARD_ENDPOINT_IP
+    read -p "Wireguard Endpoint IP: " WIREGUARD_ENDPOINT_IP
   fi
 fi
 
