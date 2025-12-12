@@ -37,6 +37,7 @@ cat << "EOF"
     ║                  m  m                                  ║
     ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor   ║
     ╚════════════════════════════════════════════════════════╝
+    
 EOF
 
 if [[ ! -d "$GIB_DIR" ]]; then
@@ -261,11 +262,11 @@ EOF
   fi
 fi
 
-# Always add WhatsMyIP matcher – should go via VPN regardless of mode
+# Always add ifconfig.io matcher – should go via VPN regardless of mode
 cat >> router.js.tmp << 'EOF'
 function isWhatsMyIpHost(host) {
   const h = normalizeHost(host);
-  const WMI_DOMAINS = `whatsmyip.com`.split('\n').filter(Boolean);
+  const WMI_DOMAINS = `ifconfig.io`.split('\n').filter(Boolean);
   return WMI_DOMAINS.some(d => h.endsWith(d.trim()));
 }
 EOF
@@ -276,7 +277,7 @@ function getProxy(req, dst, username) {
 EOF
 
 if [[ $SERVICES == "all" ]]; then
-  # All traffic except .onion via VPN; still explicitly catch whatsmyip.com
+  # All traffic except .onion via VPN; still explicitly catch ifconfig.io
   cat >> router.js.tmp << 'EOF'
   if (host.endsWith('.onion')) return TOR_PROXY;
   if (isWhatsMyIpHost(host)) return VPN_PROXY;
@@ -303,7 +304,7 @@ clear
 if [[ $SERVICES == "all" ]]; then
   SHOW_SERVICES="ALL traffic (except .onion)"
 else
-  SHOW_SERVICES="$SERVICES + whatsmyip.com"
+  SHOW_SERVICES="$SERVICES + ifconfig.io"
 fi
 
 cat << EOF
