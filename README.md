@@ -4,7 +4,7 @@
 [![Tor](https://img.shields.io/badge/Tor-SOCKS-green.svg)](https://www.torproject.org/)
 [![Gluetun VPN](https://img.shields.io/badge/VPN-Gluetun-orange.svg)](https://github.com/qdm12/gluetun)
 
-- **YouTube/Netflix/Custom domains** → VPN HTTP proxy +
+- **YouTube/Netflix/Adult/Custom domains** → VPN HTTP proxy +
 - **.onion sites** → Tor SOCKS (over VPN tunnel)
 - **Everything else** → direct Internet
 
@@ -50,9 +50,9 @@ There are two options,  you can use the setupscript.sh
 chmod 777 setupscript.sh
 ./setupscript.sh
 ```
-This will walk you through the configuration where you simply need to enter your VPN provider name [as per this link](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers), then choose openvpn or wireguard (personally I found openvpn to be better with my vpn provider), enter credentials,  choose what you want to route via the vpn (have included youtube and netflix as options,  you can add other domains by editing the resulting router.js file, see below).
+This will walk you through the configuration where you simply need to enter your VPN provider name [as per this link](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers), then choose openvpn or wireguard, enter credentials,  choose what you want to route via the vpn (have included youtube and netflix as options,  you can add other domains by editing the resulting router.js file, see below).
 
-  2.5  **Configure settings (manually)**
+2.5.  **Configure settings (manually)**
 
 If you wanted to do things a bit more manually then you just need to edit the docker-compose.yml and make sure that the below 
 ```
@@ -73,6 +73,7 @@ Note that it doesn't care if you fill all of those in, it will only use the vpn 
 
 Next you need to edit router.js so that it includes all of the domains you want to route via the VPN
 Find the section which lists the following, and simply change the domain names, you can add extras if you wish. Just remember to add the || at the end of each line (except the last one)
+
 ```
     h.endsWith("domain.com") ||
     h.endsWith("domain2.com") ||
@@ -84,41 +85,39 @@ Find the section which lists the following, and simply change the domain names, 
 docker compose up -d
 ```
 
-4. **Configure browser**
-```
-HTTP Proxy: <host-ip>:8080
-HTTPS Proxy: <host-ip>:8080
-```
+4. **Configure browser/devices**
 
-## Domain Routing Logic
+**Web Browsers**
 
-**router.js** handles all decisions:
+Firefox: Settings > General > Network Settings > Manual proxy: HTTP/HTTPS
 
-```
-// .onion → Tor SOCKS over VPN
-if (host.endsWith('.onion')) return 'socks5://vpn-proxy:9150';
+Edge: Settings > System and performance > Open proxy settings > Manual proxy: HTTP/HTTPS
 
-// YouTube → VPN HTTP proxy  
-if (isYouTubeHost(host)) return 'http://vpn-proxy:8888';
+**Mobile Devices**
 
-// Everything else → direct
-return '';
-```
+Android: Settings > Connections > Connected Wifi network Settings Cog > View more > Proxy > Manual
 
+iOS: Settings > Wi-Fi > [network] > Configure Proxy > Manual
+
+**Streaming Devices**
+
+NVIDIA Shield/Android TV: Settings > Network > Advanced > Proxy > Manual, Host ${DOCKER_HOST_IP}, Port 8080 (use apps like Proxy Manager if unavailable).
+
+Apple TV: Settings > Network > [network] > Configure Proxy > Manual, Server ${DOCKER_HOST_IP}, Port 8080.
 
 
 ## Verification
 
-1. **Check VPN routing**
-```
-docker exec vpn-proxy sh -c "curl https://ifconfig.io"
-# Should show VPN IP, not ISP IP
-```
+1. **Check normal ISP IP address**
+Browse to https://ifconfig.me - Should show ISP IP
 
-2. **Test Tor chain**
-Browser → `http://check.torproject.org` via proxy should confirm "You are using Tor"
+2. **Check VPN routing**
+Browse to https://ifconfig.io - Should show VPN IP, not ISP IP
 
-3. **Test selective routing**
+3. **Test Tor chain**
+Browser → https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion via proxy should show the BBC's Onion website
+
+4. **Test via CLI**
 ```
 curl -x http://localhost:8080 https://ifconfig.me/     # Host ISP IP
 curl -x http://localhost:8080 https://ifconfig.io/     # VPN IP  
