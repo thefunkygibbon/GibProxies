@@ -1,12 +1,15 @@
 #!/bin/bash
 # GibProxy installer script
-# Version: 1.3
+# Version: 1.3 (modified)
 
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GIB_DIR="${BASE_DIR}/gibproxy"
-
+# Add this before the final instructions block
+DOCKER_HOST_IP=$(docker inspect bridge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || echo "localhost")
+# Fallback to ip route if docker inspect fails
+[[ "$DOCKER_HOST_IP" == "DockerHostIP" ]] && DOCKER_HOST_IP=$(ip route show default | awk '/default/ {print $3; exit}' 2>/dev/null || echo "DockerHostIP")
 clear
 
 cat << "EOF"
@@ -33,36 +36,103 @@ fi
 cd "$GIB_DIR"
 
 # 1. VPN CONFIG
-echo "VPN Provider (surfshark/mullvad/nordvpn/protonvpn/custom): "
-read VPN_PROVIDER
+while true; do
+  echo "VPN Provider (surfshark/mullvad/nordvpn/protonvpn/custom): "
+  read VPN_PROVIDER
+  if [[ -n "$VPN_PROVIDER" ]]; then
+    break
+  fi
+  echo "Please enter a VPN provider (e.g. surfshark, mullvad, etc.)."
+done
 
-echo "VPN Tech (openvpn/wireguard): "
-read VPN_TECH
+while true; do
+  echo "VPN Tech (openvpn/wireguard): "
+  read VPN_TECH
+  if [[ -n "$VPN_TECH" ]]; then
+    break
+  fi
+  echo "Please enter a VPN tech (openvpn or wireguard)."
+done
 
-echo "VPN Country (Albania/United States/Ireland/Switzerland/custom): "
-read VPN_COUNTRY
+while true; do
+  echo "VPN Country (Albania/United States/Ireland/Switzerland/custom): "
+  read VPN_COUNTRY
+  if [[ -n "$VPN_COUNTRY" ]]; then
+    break
+  fi
+  echo "Please enter a VPN country (e.g. United States, Ireland, etc.)."
+done
 
 OPENVPN_ENDPOINT_IP=""
 WIREGUARD_ENDPOINT_IP=""
 
 if [[ $VPN_TECH == "openvpn" ]]; then
-  read -p "OpenVPN Username: " VPN_USER; echo
-  read -p "OpenVPN Password: " VPN_PASS; echo
+  while true; do
+    read -p "OpenVPN Username: " VPN_USER
+    if [[ -n "$VPN_USER" ]]; then
+      break
+    fi
+    echo "Username cannot be empty. Please enter a valid username."
+  done
+  while true; do
+    read -p "OpenVPN Password: " VPN_PASS
+    if [[ -n "$VPN_PASS" ]]; then
+      break
+    fi
+    echo "Password cannot be empty. Please enter a valid password."
+  done
 elif [[ $VPN_TECH == "wireguard" ]]; then
-  read -p "WireGuard Private Key: " WG_KEY; echo
-  echo "WireGuard Addresses example: 10.64.0.2/32"
-  read -p "WireGuard Addresses: " WG_ADDR
+  while true; do
+    read -p "WireGuard Private Key: " WG_KEY
+    if [[ -n "$WG_KEY" ]]; then
+      break
+    fi
+    echo "Private key cannot be empty. Please enter a valid private key."
+  done
+  while true; do
+    echo "WireGuard Addresses example: 10.64.0.2/32"
+    read -p "WireGuard Addresses: " WG_ADDR
+    if [[ -n "$WG_ADDR" ]]; then
+      break
+    fi
+    echo "Addresses cannot be empty. Please enter a valid WireGuard address."
+  done
 fi
 
 # Optional endpoint IP
 echo ""
-read -p "Do you want to specify a VPN endpoint/server IP address? (y/N): " EP_CHOICE
+while true; do
+  read -p "Do you want to specify a VPN endpoint/server IP address? (y/N): " EP_CHOICE
+  if [[ -z "$EP_CHOICE" ]]; then
+    EP_CHOICE="n"
+  fi
+  case "$EP_CHOICE" in
+    [Yy]*|[Nn]*)
+      break
+      ;;
+    *)
+      echo "Please answer y or n."
+      ;;
+  esac
+done
 
 if [[ "$EP_CHOICE" =~ ^[Yy]$ ]]; then
   if [[ $VPN_TECH == "openvpn" ]]; then
-    read -p "OpenVPN Endpoint IP: " OPENVPN_ENDPOINT_IP
+    while true; do
+      read -p "OpenVPN Endpoint IP: " OPENVPN_ENDPOINT_IP
+      if [[ -n "$OPENVPN_ENDPOINT_IP" ]]; then
+        break
+      fi
+      echo "Endpoint IP cannot be empty. Please enter a valid IP address."
+    done
   else
-    read -p "Wireguard Endpoint IP: " WIREGUARD_ENDPOINT_IP
+    while true; do
+      read -p "Wireguard Endpoint IP: " WIREGUARD_ENDPOINT_IP
+      if [[ -n "$WIREGUARD_ENDPOINT_IP" ]]; then
+        break
+      fi
+      echo "Endpoint IP cannot be empty. Please enter a valid IP address."
+    done
   fi
 fi
 
@@ -73,15 +143,19 @@ echo " 1) Netflix only"
 echo " 2) YouTube only"
 echo " 3) Both Netflix + YouTube"
 echo " 4) ALL traffic (except .onion) via VPN"
-read -p "Choice (1-4): " SVC_CHOICE
 
-case $SVC_CHOICE in
-  1) SERVICES="netflix";;
-  2) SERVICES="youtube";;
-  3) SERVICES="netflix,youtube";;
-  4) SERVICES="all";;
-  *) echo "Invalid choice"; exit 1;;
-esac
+while true; do
+  read -p "Choice (1-4): " SVC_CHOICE
+  case $SVC_CHOICE in
+    1) SERVICES="netflix"; break ;;
+    2) SERVICES="youtube"; break ;;
+    3) SERVICES="netflix,youtube"; break ;;
+    4) SERVICES="all"; break ;;
+    *)
+      echo "Invalid choice. Please enter a number from 1 to 4."
+      ;;
+  esac
+done
 
 # 3. BACKUP (inside gibproxy)
 cp -n docker-compose.yml docker-compose.yml.bak 2>/dev/null || true
@@ -221,38 +295,32 @@ else
 fi
 
 cat << EOF
+CONFIGURATION COMPLETE! (v1.3)
+===============================
 
-✅ CONFIGURATION COMPLETE! (v1.3)
+Config folder: ${GIB_DIR}
 
-📂 Config folder:
-  ${GIB_DIR}
+VPN: ${VPN_PROVIDER} (${VPN_COUNTRY}) via ${VPN_TECH}
+Services: ${SHOW_SERVICES}
 
-📋 Services via VPN: ${SHOW_SERVICES}
-🌍 VPN Provider: ${VPN_PROVIDER} (${VPN_COUNTRY})
-🔌 VPN Tech: ${VPN_TECH}
+Volume: ${GIB_DIR}/router.js -> /config/router.js (dumbproxy)
 
-📁 Volume Mapping
-docker-compose.yml (inside gibproxy) should have:
-  - "./router.js:/config/router.js:ro"
+START SERVICES (from gibproxy/):
+- cd ${GIB_DIR}
+- docker compose down
+- docker compose up -d
 
-Docker will mount:
-  ${GIB_DIR}/router.js  →  /config/router.js in the dumbproxy container.
+BROWSER SETUP:
+Configure browser to use HTTP proxy:
+Host: ${DOCKER_HOST_IP}
+Port: 8080
+Type: HTTP proxy (not SOCKS)
 
-If you move the gibproxy folder elsewhere, run Docker from that new folder
-or adjust the volume path accordingly.
+Backups: docker-compose.yml.bak, router.js.bak
 
-🔄 To START services, run from inside gibproxy:
-  cd "${GIB_DIR}"
-  docker compose down    # (if already running)
-  docker compose up -d
-
-📋 Backups created (in gibproxy):
-  - docker-compose.yml.bak
-  - router.js.bak
-
-🧪 Test commands:
-  curl -x http://localhost:8080 https://ifconfig.me -I
-  curl -x http://localhost:8080 https://ifconfig.io/country-code -I
-  curl -x http://localhost:8080 https://www.whatsmyip.com -I
+TEST:
+curl -x http://${DOCKER_HOST_IP}:8080 https://ifconfig.me      # Host ISP IP
+curl -x http://${DOCKER_HOST_IP}:8080 https://ifconfig.io      # VPN IP  
+curl -x http://${DOCKER_HOST_IP}:8080 https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/  # Tor
 
 EOF
