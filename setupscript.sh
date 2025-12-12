@@ -47,7 +47,7 @@ if [[ $VPN_TECH == "openvpn" ]]; then
   read -s -p "OpenVPN Password: " VPN_PASS; echo
 elif [[ $VPN_TECH == "wireguard" ]]; then
   read -s -p "WireGuard Private Key: " WG_KEY; echo
-  read -p "WireGuard Endpoint: " WG_ENDPOINT
+  read -p "WireGuard Addresses: " WG_ADDRESSES
 fi
 
 # 2. SERVICES
@@ -90,7 +90,7 @@ if [[ $VPN_TECH == "openvpn" ]]; then
   update_env "OPENVPN_PASSWORD" "$VPN_PASS"
 else
   update_env "WIREGUARD_PRIVATE_KEY" "$WG_KEY"
-  update_env "WIREGUARD_ENDPOINT_IP" "$WG_ENDPOINT"
+  update_env "WIREGUARD_ADDRESSES" "$WG_ADDRESSES"
 fi
 
 # Ensure the compose file mounts router.js from THIS folder:
