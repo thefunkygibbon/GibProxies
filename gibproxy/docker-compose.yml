@@ -33,9 +33,8 @@ services:
     command:
       - -bind-address=:8080
       - -js-proxy-router=/config/router.js
-      - -dst-allow-prefix=192.168.0.0/16
-      - -dst-allow-prefix=10.0.0.0/8
-      - -dst-allow-prefix=172.16.0.0/12
+         # override default deny list to allow your LAN
+      - -deny-dst-addr=127.0.0.0/8,0.0.0.0/32,10.0.0.0/8,172.16.0.0/12,169.254.0.0/16,::1/128,::/128,fe80::/10
     ports:
       - "8080:8080"           # proxy you point apps to
     volumes:
