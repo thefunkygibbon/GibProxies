@@ -1,6 +1,6 @@
 #!/bin/bash
 # GibProxy installer script
-# Version: 1.4 (added Adult sites option)
+# Version: 1.5 (multi-select services)
 
 set -euo pipefail
 
@@ -149,25 +149,46 @@ if [[ "$EP_CHOICE" =~ ^[Yy]$ ]]; then
   fi
 fi
 
-# 2. SERVICES
+# 2. SERVICES - Multi-select
 echo ""
-echo "Services to route via VPN:"
-echo " 1) Netflix only"
-echo " 2) YouTube only"
-echo " 3) Netflix + YouTube"
-echo " 4) Adult sites (pornhub/xvideos/onlyfans/etc)"
-echo " 5) ALL traffic (except .onion) via VPN"
+echo "Services to route via VPN (space-separated numbers, e.g. '1 3' for YouTube+Adult):"
+echo " 1) YouTube"
+echo " 2) Netflix"
+echo " 3) Adult sites (pornhub/xvideos/onlyfans/etc)"
+echo " 4) All of the above (1+2+3)"
+echo " 5) ALL traffic (except .onion)"
 
 while true; do
-  read -p "Choice (1-5): " SVC_CHOICE
+  read -p "Choice: " SVC_CHOICE
   case $SVC_CHOICE in
-    1) SERVICES="netflix"; break ;;
-    2) SERVICES="youtube"; break ;;
-    3) SERVICES="netflix,youtube"; break ;;
-    4) SERVICES="adult"; break ;;
-    5) SERVICES="all"; break ;;
+    4)
+      SERVICES="youtube,netflix,adult"; break ;;
+    5)
+      SERVICES="all"; break ;;
     *)
-      echo "Invalid choice. Please enter a number from 1 to 5."
+      # Parse multiple selections
+      SELECTED=""
+      HAS_YOUTUBE=false
+      HAS_NETFLIX=false
+      HAS_ADULT=false
+      
+      for num in $SVC_CHOICE; do
+        case $num in
+          1) HAS_YOUTUBE=true ;;
+          2) HAS_NETFLIX=true ;;
+          3) HAS_ADULT=true ;;
+          *) echo "Invalid number '$num'. Use 1-5 only."; SELECTED=""; break 2 ;;
+        esac
+      done
+      
+      if [[ -n "$SELECTED" || ( -n "${HAS_YOUTUBE:-}" || -n "${HAS_NETFLIX:-}" || -n "${HAS_ADULT:-}" ) ]]; then
+        if [[ $HAS_YOUTUBE == true ]]; then SELECTED+="${SELECTED+,}youtube"; fi
+        if [[ $HAS_NETFLIX == true ]]; then SELECTED+="${SELECTED+,}netflix"; fi
+        if [[ $HAS_ADULT == true ]]; then SELECTED+="${SELECTED+,}adult"; fi
+        SERVICES="$SELECTED"
+        break
+      fi
+      echo "Please enter valid numbers (1-5, space separated, or 4/5)."
       ;;
   esac
 done
@@ -226,24 +247,6 @@ EOF
 
 # Service matchers only needed if not "all"
 if [[ $SERVICES != "all" ]]; then
-  if [[ $SERVICES == *"netflix"* ]]; then
-    cat >> router.js.tmp << 'EOF'
-function isNetflixHost(host) {
-  const h = normalizeHost(host);
-  const NETFLIX_DOMAINS = `netflix.com
-netflix.net
-nflxext.com
-nflximg.com
-nflximg.net
-nflxso.net
-nflxvideo.net
-netflixstudios.com
-netflixpartners.com`.split('\n').filter(Boolean);
-  return NETFLIX_DOMAINS.some(d => h.endsWith(d.trim()));
-}
-EOF
-  fi
-
   if [[ $SERVICES == *"youtube"* ]]; then
     cat >> router.js.tmp << 'EOF'
 function isYouTubeHost(host) {
@@ -259,6 +262,24 @@ ggpht.com
 youtubeeducation.com
 youtu.be`.split('\n').filter(Boolean);
   return YOUTUBE_DOMAINS.some(d => h.endsWith(d.trim()));
+}
+EOF
+  fi
+
+  if [[ $SERVICES == *"netflix"* ]]; then
+    cat >> router.js.tmp << 'EOF'
+function isNetflixHost(host) {
+  const h = normalizeHost(host);
+  const NETFLIX_DOMAINS = `netflix.com
+netflix.net
+nflxext.com
+nflximg.com
+nflximg.net
+nflxso.net
+nflxvideo.net
+netflixstudios.com
+netflixpartners.com`.split('\n').filter(Boolean);
+  return NETFLIX_DOMAINS.some(d => h.endsWith(d.trim()));
 }
 EOF
   fi
@@ -296,7 +317,7 @@ function getProxy(req, dst, username) {
 EOF
 
 if [[ $SERVICES == "all" ]]; then
-  # All traffic except .onion via VPN; still explicitly catch ifconfig.io
+  # All traffic except .onion via VPN
   cat >> router.js.tmp << 'EOF'
   if (host.endsWith('.onion')) return TOR_PROXY;
   if (isWhatsMyIpHost(host)) return VPN_PROXY;
@@ -304,8 +325,8 @@ if [[ $SERVICES == "all" ]]; then
 }
 EOF
 else
-  [[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
   [[ $SERVICES == *"youtube"* ]] && echo "  if (isYouTubeHost(host)) return VPN_PROXY;" >> router.js.tmp
+  [[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
   [[ $SERVICES == *"adult"* ]] && echo "  if (isAdultHost(host)) return VPN_PROXY;" >> router.js.tmp
   echo "  if (isWhatsMyIpHost(host)) return VPN_PROXY;" >> router.js.tmp
 
@@ -323,14 +344,12 @@ clear
 
 if [[ $SERVICES == "all" ]]; then
   SHOW_SERVICES="ALL traffic (except .onion)"
-elif [[ $SERVICES == "adult" ]]; then
-  SHOW_SERVICES="Adult sites + ifconfig.io"
 else
   SHOW_SERVICES="$SERVICES + ifconfig.io"
 fi
 
 cat << EOF
-CONFIGURATION COMPLETE! (v1.4)
+CONFIGURATION COMPLETE! (v1.5)
 ===============================
 
 Config folder: ${GIB_DIR}
