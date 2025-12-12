@@ -1,15 +1,27 @@
 #!/bin/bash
 # GibProxy installer script
-# Version: 1.3 (modified)
+# Version: 1.3 (modified - improved IP detection)
 
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GIB_DIR="${BASE_DIR}/gibproxy"
-# Add this before the final instructions block
-DOCKER_HOST_IP=$(docker inspect bridge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || echo "localhost")
-# Fallback to ip route if docker inspect fails
-[[ "$DOCKER_HOST_IP" == "DockerHostIP" ]] && DOCKER_HOST_IP=$(ip route show default | awk '/default/ {print $3; exit}' 2>/dev/null || echo "DockerHostIP")
+
+# Improved IP detection: Get IP from default route interface
+get_host_ip() {
+  DEFAULT_IFACE=$(ip route show default | head -n1 | awk '{print $5}' 2>/dev/null)
+  if [[ -n "$DEFAULT_IFACE" && "$DEFAULT_IFACE" != "lo" ]]; then
+    IP=$(ip -4 addr show dev "$DEFAULT_IFACE" | grep "inet " | awk '{print $2}' | cut -d'/' -f1 | head -n1 2>/dev/null)
+    if [[ -n "$IP" && "$IP" != "127.0.0.1" ]]; then
+      echo "$IP"
+      return 0
+    fi
+  fi
+  # Fallback: first non-loopback IP
+  ip -4 addr show | grep -v "lo:" | grep "inet " | head -n1 | awk '{print $2}' | cut -d'/' -f1 2>/dev/null || echo "127.0.0.1"
+}
+
+DOCKER_HOST_IP=$(get_host_ip)
 clear
 
 cat << "EOF"
@@ -302,6 +314,7 @@ Config folder: ${GIB_DIR}
 
 VPN: ${VPN_PROVIDER} (${VPN_COUNTRY}) via ${VPN_TECH}
 Services: ${SHOW_SERVICES}
+Proxy IP: ${DOCKER_HOST_IP}:8080
 
 Volume: ${GIB_DIR}/router.js -> /config/router.js (dumbproxy)
 
