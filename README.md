@@ -89,6 +89,8 @@ docker compose up -d
 
 **Web Browsers**
 
+Chrome: Settings > System > Open proxy settings > Manual proxy: HTTP/HTTPS
+
 Firefox: Settings > General > Network Settings > Manual proxy: HTTP/HTTPS
 
 Edge: Settings > System and performance > Open proxy settings > Manual proxy: HTTP/HTTPS
