@@ -10,18 +10,18 @@ GIB_DIR="${BASE_DIR}/gibproxy"
 clear
 
 cat << "EOF"
-    ╔════════════════════════════════════════════════════════════╗
-    ║  🐒  GibProxy VPN & Tor Router Installer                   ║
-    ║                                                            ║
-    ║        .-\"\"\"-.                                            ║
-    ║       /  _  _  \                                           ║
-    ║       | (.)(.) |                                           ║
-    ║       \   ^^   /                                           ║
-    ║        '.___.'                                              ║
-    ║         /   \                                               ║
-    ║        /_____\\                                              ║
-    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor        ║
-    ╚════════════════════════════════════════════════════════════╝
+    ╔════════════════════════════════════════════════════════╗
+    ║          GibProxy VPN & Tor Router Installer           ║
+    ║                  __                                    ║                                     
+    ║             w  c(..)o   (                              ║
+    ║              \__(-)    __)                             ║
+    ║                  /\   (                                ║
+    ║                 /(_)___)                               ║
+    ║                 w /|                                   ║
+    ║                  | \                                   ║
+    ║                  m  m                                  ║
+    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor   ║
+    ╚════════════════════════════════════════════════════════╝
 EOF
 
 if [[ ! -d "$GIB_DIR" ]]; then
@@ -253,8 +253,8 @@ or adjust the volume path accordingly.
   - router.js.bak
 
 🧪 Test commands:
-  curl -x http://localhost:8080 https://www.netflix.com -I
-  curl -x http://localhost:8080 https://www.youtube.com -I
+  curl -x http://localhost:8080 https://ifconfig.me -I
+  curl -x http://localhost:8080 https://ifconfig.io/country-code -I
   curl -x http://localhost:8080 https://www.whatsmyip.com -I
 
 EOF
