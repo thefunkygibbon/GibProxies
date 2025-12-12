@@ -1,4 +1,4 @@
-# Docker Smart Proxy: Tor + VPN Routing
+# GibProxies - Docker Smart Proxy: VPN + Tor Routing
 
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
 [![Tor](https://img.shields.io/badge/Tor-SOCKS-green.svg)](https://www.torproject.org/)
