@@ -2,7 +2,7 @@
 
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
 [![Tor](https://img.shields.io/badge/Tor-SOCKS-green.svg)](https://www.torproject.org/)
-[![Gluetun VPN](https://img.shields.io/badge/VPN-Gluetun-orange.svg)](https://github.com/qdm12/gluetun)Compose:
+[![Gluetun VPN](https://img.shields.io/badge/VPN-Gluetun-orange.svg)](https://github.com/qdm12/gluetun)
 - **.onion sites** → Tor SOCKS (over VPN tunnel)
 - **YouTube domains** → VPN HTTP proxy 
 - **Everything else** → direct Internet
