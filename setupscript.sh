@@ -1,6 +1,6 @@
 #!/bin/bash
 # GibProxy installer script
-# Version: 1.1
+# Version: 1.2
 
 set -euo pipefail
 
@@ -11,16 +11,16 @@ clear
 
 cat << "EOF"
     ╔════════════════════════════════════════════════════════════╗
-    ║      GibProxy VPN & Tor Router Installer                   ║
+    ║  🐒  GibProxy VPN & Tor Router Installer                   ║
     ║                                                            ║
-    ║        .-\"\"\"-.                                          ║
+    ║        .-\"\"\"-.                                            ║
     ║       /  _  _  \                                           ║
     ║       | (.)(.) |                                           ║
     ║       \   ^^   /                                           ║
-    ║        '.___.'                                             ║
-    ║         /   \                                              ║
-    ║        /_____\\                                            ║
-    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor       ║
+    ║        '.___.'                                              ║
+    ║         /   \                                               ║
+    ║        /_____\\                                              ║
+    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor        ║
     ╚════════════════════════════════════════════════════════════╝
 EOF
 
@@ -42,19 +42,37 @@ read VPN_TECH
 echo "VPN Country (Albania/United States/Ireland/Switzerland/custom): "
 read VPN_COUNTRY
 
+OPENVPN_ENDPOINT_IP=""
+WIREGUARD_ENDPOINT_IP=""
+
 if [[ $VPN_TECH == "openvpn" ]]; then
   read -s -p "OpenVPN Username: " VPN_USER; echo
   read -s -p "OpenVPN Password: " VPN_PASS; echo
 elif [[ $VPN_TECH == "wireguard" ]]; then
   read -s -p "WireGuard Private Key: " WG_KEY; echo
-  read -p "WireGuard Addresses: " WG_ADDRESSES
+  echo "WireGuard Addresses example: 10.64.0.2/32"
+  read -p "WireGuard Addresses (WIREGUARD_ADDRESSES): " WG_ADDR
+fi
+
+# Optional endpoint IP
+echo ""
+echo "Do you want to specify a VPN endpoint IP address?"
+echo "This sets OPENVPN_ENDPOINT_IP or WIREGUARD_ENDPOINT_IP as appropriate."
+read -p "Specify endpoint IP? (y/N): " EP_CHOICE
+
+if [[ "$EP_CHOICE" =~ ^[Yy]$ ]]; then
+  if [[ $VPN_TECH == "openvpn" ]]; then
+    read -p "OPENVPN_ENDPOINT_IP: " OPENVPN_ENDPOINT_IP
+  else
+    read -p "WIREGUARD_ENDPOINT_IP: " WIREGUARD_ENDPOINT_IP
+  fi
 fi
 
 # 2. SERVICES
 echo ""
 echo "Services to route via VPN:"
 echo " 1) Netflix only"
-echo " 2) YouTube only" 
+echo " 2) YouTube only"
 echo " 3) Both Netflix + YouTube"
 echo " 4) ALL traffic (except .onion) via VPN"
 read -p "Choice (1-4): " SVC_CHOICE
@@ -88,13 +106,18 @@ update_env "SERVER_COUNTRIES" "$VPN_COUNTRY"
 if [[ $VPN_TECH == "openvpn" ]]; then
   update_env "OPENVPN_USER" "$VPN_USER"
   update_env "OPENVPN_PASSWORD" "$VPN_PASS"
+  if [[ -n "$OPENVPN_ENDPOINT_IP" ]]; then
+    update_env "OPENVPN_ENDPOINT_IP" "$OPENVPN_ENDPOINT_IP"
+  fi
 else
   update_env "WIREGUARD_PRIVATE_KEY" "$WG_KEY"
-  update_env "WIREGUARD_ADDRESSES" "$WG_ADDRESSES"
+  update_env "WIREGUARD_ADDRESSES" "$WG_ADDR"
+  if [[ -n "$WIREGUARD_ENDPOINT_IP" ]]; then
+    update_env "WIREGUARD_ENDPOINT_IP" "$WIREGUARD_ENDPOINT_IP"
+  fi
 fi
 
 # Ensure the compose file mounts router.js from THIS folder:
-# (idempotent: replace if present, otherwise append under volumes)
 if grep -q "/config/router.js" docker-compose.yml; then
   sed -i 's#.*router.js:/config/router.js:ro#      - ./router.js:/config/router.js:ro#' docker-compose.yml
 else
@@ -188,7 +211,7 @@ fi
 
 cat << EOF
 
-✅ CONFIGURATION COMPLETE! (v1.1)
+✅ CONFIGURATION COMPLETE! (v1.2)
 
 📂 Config folder:
   ${GIB_DIR}
@@ -201,7 +224,7 @@ cat << EOF
 docker-compose.yml (inside gibproxy) should have:
   - "./router.js:/config/router.js:ro"
 
-This means Docker will mount:
+Docker will mount:
   ${GIB_DIR}/router.js  →  /config/router.js in the dumbproxy container.
 
 If you move the gibproxy folder elsewhere, run Docker from that new folder
