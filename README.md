@@ -120,9 +120,9 @@ Browser → `http://check.torproject.org` via proxy should confirm "You are usin
 
 3. **Test selective routing**
 ```
-curl -x http://localhost:8080 https://ifconfig.io/country     # VPN IP  
-curl -x http://localhost:8080 http://facebookcorewwwi.onion/  # Tor exit
-curl -x http://localhost:8080 https://example.com            # Host ISP IP
+curl -x http://localhost:8080 https://ifconfig.me/     # Host ISP IP
+curl -x http://localhost:8080 https://ifconfig.io/     # VPN IP  
+curl -x http://localhost:8080 https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/  # Tor exit
 ```
 
 ## Troubleshooting
