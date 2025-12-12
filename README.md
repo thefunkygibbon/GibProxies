@@ -4,7 +4,7 @@
 [![Tor](https://img.shields.io/badge/Tor-SOCKS-green.svg)](https://www.torproject.org/)
 [![Gluetun VPN](https://img.shields.io/badge/VPN-Gluetun-orange.svg)](https://github.com/qdm12/gluetun)
 
-- **YouTube/Netflix/Adult/Custom domains** → VPN HTTP proxy +
+- **YouTube/Netflix/UK-OSA/Custom domains** → VPN HTTP proxy +
 - **.onion sites** → Tor SOCKS (over VPN tunnel)
 - **Everything else** → direct Internet
 
@@ -13,10 +13,16 @@ No client-side proxy switching needed. Browser points at single HTTP proxy endpo
 ## Features
 - JS-based domain routing
 - Tor anonymity + VPN egress in one chain
+- Split tunnel for browsing the rest of the internet from your normal internet
 - VPN with Wireguard/OpenVPN support
 - Customizable domain matching
 - Works with any HTTP(S)-aware browser/app/device
 
+## Use cases 
+- Netflix + YouTube access via other countries for streaming devices to bypass country restrictions or adverts.
+- Seemless and secure access to the Darkweb/Tor (recommend using incognito mode still)
+- Transparently bypass age verification requirements on certain sites (OSA)
+  
 ## Architecture
 ```
 Client (Browser) → dumbproxy:8080 → {
@@ -25,6 +31,7 @@ Client (Browser) → dumbproxy:8080 → {
   *        → direct from host
 }
 ```
+
 ## Technologies used
  - Dumbproxy - https://github.com/SenseUnit/dumbproxy
  - Gluetun VPN Proxy - https://github.com/qdm12/gluetun
