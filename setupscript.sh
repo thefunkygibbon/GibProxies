@@ -1,6 +1,6 @@
 #!/bin/bash
 # GibProxy installer script
-# Version: 1.2
+# Version: 1.3
 
 set -euo pipefail
 
@@ -127,9 +127,10 @@ fi
 # 5. REBUILD router.js (in gibproxy/)
 > router.js.tmp
 
+# Updated proxies: both via vpn-proxy, Tor on 9150
 cat >> router.js.tmp << 'EOF'
-const TOR_PROXY = 'socks5://tor:9050';
-const VPN_PROXY = 'http://gluetun:8888';
+const TOR_PROXY = 'socks5://vpn-proxy:9150';
+const VPN_PROXY = 'http://vpn-proxy:8888';
 
 function normalizeHost(host) {
   return (host || '').toLowerCase().replace(/:\d+$/, '');
@@ -176,20 +177,32 @@ EOF
   fi
 fi
 
+# Always add WhatsMyIP matcher – should go via VPN regardless of mode
+cat >> router.js.tmp << 'EOF'
+function isWhatsMyIpHost(host) {
+  const h = normalizeHost(host);
+  const WMI_DOMAINS = `whatsmyip.com`.split('\n').filter(Boolean);
+  return WMI_DOMAINS.some(d => h.endsWith(d.trim()));
+}
+EOF
+
 cat >> router.js.tmp << 'EOF'
 function getProxy(req, dst, username) {
   const host = normalizeHost(dst.originalHost || req.host || "");
 EOF
 
 if [[ $SERVICES == "all" ]]; then
+  # All traffic except .onion via VPN; still explicitly catch whatsmyip.com
   cat >> router.js.tmp << 'EOF'
   if (host.endsWith('.onion')) return TOR_PROXY;
+  if (isWhatsMyIpHost(host)) return VPN_PROXY;
   return VPN_PROXY;
 }
 EOF
 else
   [[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
   [[ $SERVICES == *"youtube"* ]] && echo "  if (isYouTubeHost(host)) return VPN_PROXY;" >> router.js.tmp
+  echo "  if (isWhatsMyIpHost(host)) return VPN_PROXY;" >> router.js.tmp
 
   cat >> router.js.tmp << 'EOF'
   if (host.endsWith('.onion')) return TOR_PROXY;
@@ -206,12 +219,12 @@ clear
 if [[ $SERVICES == "all" ]]; then
   SHOW_SERVICES="ALL traffic (except .onion)"
 else
-  SHOW_SERVICES="$SERVICES"
+  SHOW_SERVICES="$SERVICES + whatsmyip.com"
 fi
 
 cat << EOF
 
-✅ CONFIGURATION COMPLETE! (v1.2)
+✅ CONFIGURATION COMPLETE! (v1.3)
 
 📂 Config folder:
   ${GIB_DIR}
@@ -242,5 +255,6 @@ or adjust the volume path accordingly.
 🧪 Test commands:
   curl -x http://localhost:8080 https://www.netflix.com -I
   curl -x http://localhost:8080 https://www.youtube.com -I
+  curl -x http://localhost:8080 https://www.whatsmyip.com -I
 
 EOF
