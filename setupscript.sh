@@ -1,6 +1,6 @@
 #!/bin/bash
 # GibProxy installer script
-# Version: 1.3 (modified - improved IP detection)
+# Version: 1.4 (added Adult sites option)
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ cat << "EOF"
     ║                 w /|                                   ║
     ║                  | \                                   ║
     ║                  m  m                                  ║
-    ║  Routes YouTube/Netflix or ALL via VPN, rest via Tor   ║
+    ║  Routes YouTube/Netflix/Adult or ALL via VPN, rest Tor ║
     ╚════════════════════════════════════════════════════════╝
     
 EOF
@@ -154,18 +154,20 @@ echo ""
 echo "Services to route via VPN:"
 echo " 1) Netflix only"
 echo " 2) YouTube only"
-echo " 3) Both Netflix + YouTube"
-echo " 4) ALL traffic (except .onion) via VPN"
+echo " 3) Netflix + YouTube"
+echo " 4) Adult sites (pornhub/xvideos/onlyfans/etc)"
+echo " 5) ALL traffic (except .onion) via VPN"
 
 while true; do
-  read -p "Choice (1-4): " SVC_CHOICE
+  read -p "Choice (1-5): " SVC_CHOICE
   case $SVC_CHOICE in
     1) SERVICES="netflix"; break ;;
     2) SERVICES="youtube"; break ;;
     3) SERVICES="netflix,youtube"; break ;;
-    4) SERVICES="all"; break ;;
+    4) SERVICES="adult"; break ;;
+    5) SERVICES="all"; break ;;
     *)
-      echo "Invalid choice. Please enter a number from 1 to 4."
+      echo "Invalid choice. Please enter a number from 1 to 5."
       ;;
   esac
 done
@@ -260,6 +262,23 @@ youtu.be`.split('\n').filter(Boolean);
 }
 EOF
   fi
+
+  if [[ $SERVICES == *"adult"* ]]; then
+    cat >> router.js.tmp << 'EOF'
+function isAdultHost(host) {
+  const h = normalizeHost(host);
+  const ADULT_DOMAINS = `pornhub.com
+xvideos.com
+xhamster.com
+onlyfans.com
+redtube.com
+reddit.com
+redgifs.com
+imgur.com`.split('\n').filter(Boolean);
+  return ADULT_DOMAINS.some(d => h.endsWith(d.trim()));
+}
+EOF
+  fi
 fi
 
 # Always add ifconfig.io matcher – should go via VPN regardless of mode
@@ -287,6 +306,7 @@ EOF
 else
   [[ $SERVICES == *"netflix"* ]] && echo "  if (isNetflixHost(host)) return VPN_PROXY;" >> router.js.tmp
   [[ $SERVICES == *"youtube"* ]] && echo "  if (isYouTubeHost(host)) return VPN_PROXY;" >> router.js.tmp
+  [[ $SERVICES == *"adult"* ]] && echo "  if (isAdultHost(host)) return VPN_PROXY;" >> router.js.tmp
   echo "  if (isWhatsMyIpHost(host)) return VPN_PROXY;" >> router.js.tmp
 
   cat >> router.js.tmp << 'EOF'
@@ -303,12 +323,14 @@ clear
 
 if [[ $SERVICES == "all" ]]; then
   SHOW_SERVICES="ALL traffic (except .onion)"
+elif [[ $SERVICES == "adult" ]]; then
+  SHOW_SERVICES="Adult sites + ifconfig.io"
 else
   SHOW_SERVICES="$SERVICES + ifconfig.io"
 fi
 
 cat << EOF
-CONFIGURATION COMPLETE! (v1.3)
+CONFIGURATION COMPLETE! (v1.4)
 ===============================
 
 Config folder: ${GIB_DIR}
