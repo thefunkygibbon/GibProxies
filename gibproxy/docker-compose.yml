@@ -7,9 +7,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - ./gibproxy:/gluetun
-    env_file:
-      - ./env.vpn
+      - ./:/gluetun
     networks:
       - ProxyNet
     environment:
@@ -38,7 +36,7 @@ services:
     ports:
       - "8080:8080"           # proxy you point apps to
     volumes:
-      - ./gibproxy/router.js:/config/router.js:ro
+      - ./router.js:/config/router.js:ro
     networks:
       - ProxyNet
     depends_on:
